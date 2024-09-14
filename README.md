@@ -17,3 +17,5 @@
    - create the schema
 
 6. **Create the PPT**(rehab)
+7. **create gantt chart**
+8. **create documentation**
