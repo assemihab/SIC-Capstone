@@ -13,7 +13,7 @@
 
 5. **Store the data in Cassandra**(yehia)
    - Create different column families for each topic (if necessary)
-   - Connect Cassandra to Datastax Cloud
+   - Connect Cassandra to Datastax Cloud _**(Done By Yahya)**_
    - create the schema
 
 6. **Create the PPT**(rehab)
