@@ -28,3 +28,7 @@ services:
       - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+  cassandra:
+    image: cassandra:latest
+    ports:
+      - "9042:9042"
