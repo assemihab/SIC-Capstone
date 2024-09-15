@@ -12,9 +12,9 @@
    - Create a multi-facade dashboard for better visualization
 
 5. **Store the data in Cassandra**(yehia)
-   - Create different column families for each topic (if necessary)
-   - Connect Cassandra to Datastax Cloud _**(Done By Yahya)**_
-   - create the schema
+   - <del>Create different column families for each topic (if necessary)</del>
+   - ✅Connect Cassandra to Datastax Cloud _**(Done By Yahya)**_
+   - ✅create the schema _**(Done By Yahya)**_
 
 6. **Create the PPT**(rehab)
 7. **create gantt chart**
