@@ -88,6 +88,16 @@ docker exec -it finalproject-spark-1 spark-submit --packages org.apache.spark:sp
 ```
 You can get connection string that match your version from: [Link](https://mvnrepository.com/artifact/org.apache.spark/spark-sql-kafka-0-10)
 
+Before you can read kafka messeges you must create a kafka topic:
+```
+docker exec -it <kafka-container-id> /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic my-topic
+```
+
+Then create a producer with that topic:
+```
+docker exec -it <kafka-container-id> /opt/kafka/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic my-topic
+```
+
 After that you can read from kafka topic as:
 ```python
 df = spark \
