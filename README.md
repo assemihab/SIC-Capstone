@@ -177,3 +177,27 @@ df.write \
   .mode("append") \
   .save()
 ```
+
+### Connect spark with MongoDB atlas
+We need to include spakr-mongodb-connector in our packages, in addition to connection string.
+
+Our sparkSession configration will be like this:
+```python
+spark = SparkSession.builder \
+  .appName("Healthcare Monitoring") \
+  .config("spark.cassandra.connection.config.cloud.path", "secure-connect-healthcare-streaming.zip") \
+  .config("spark.cassandra.auth.username", CLIENT_ID) \
+  .config("spark.cassandra.auth.password", CLIENT_SECRET) \
+  .config("spark.mongodb.spark.enabled", "true") \
+  .config("spark.mongodb.read.connection.uri", connection_string) \
+  .config("spark.mongodb.write.connection.uri", connection_string) \
+  .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:10.4.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.2") \
+  .getOrCreate()
+```
+
+Then when we run docker container we will contain the package
+```
+docker exec -it finalproject-spark-1 spark-submit --files /opt/spark-app/secure-connect-healthcare-streaming.zip --conf spark.cassandra.connection.config.cloud.path=secure-connect-healthcare-streaming.zip --packages com.datastax.spark:spark-cassandra-connector_2.12:3.5.1,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.2,org.mongodb.spark:mongo-spark-connector_2.12:10.4.0 /opt/spark-app/health_monitoring.py
+```
+
+Make sure that package is combitable with your spark and scala version.
