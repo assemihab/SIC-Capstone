@@ -4,8 +4,8 @@
 1. **Simulate stream code in Python** (assem)
 2. ✅**create the .yml container and create the image** (assem)
    
-3. ✅**Ingest data using Kafka** (Mark)+
-   - ✅Create different Kafka topics (e.g., one for heart disease, one for sleep, etc.)
+3. **Ingest data using Kafka** (Mark)+
+   - Create different Kafka topics (e.g., one for heart disease, one for sleep, etc.)
 4. **spark code for processing and store data to <del>cassandra</del> (mongodb) (a3taked keda me4 3arf)** rehab
 
 4. **Process the data and connect it to a BI tool**(mark)
