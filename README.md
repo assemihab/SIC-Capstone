@@ -159,6 +159,7 @@ spark = SparkSession.builder \
   .config("spark.cassandra.auth.password", CLIENT_SECRET) \
   .getOrCreate()
 ```
+
 Then when you run spark docker container include these additional packages:
 ```
 docker exec -it finalproject-spark-1 spark-submit \
@@ -200,4 +201,14 @@ Then when we run docker container we will contain the package
 docker exec -it finalproject-spark-1 spark-submit --files /opt/spark-app/secure-connect-healthcare-streaming.zip --conf spark.cassandra.connection.config.cloud.path=secure-connect-healthcare-streaming.zip --packages com.datastax.spark:spark-cassandra-connector_2.12:3.5.1,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.2,org.mongodb.spark:mongo-spark-connector_2.12:10.4.0 /opt/spark-app/health_monitoring.py
 ```
 
-Make sure that package is combitable with your spark and scala version.
+_Make sure that package is combitable with your spark and scala version._
+
+Then you can write to mongoDB atlas as:
+```python
+df.write.format("mongodb") \
+  .option("spark.mongodb.write.connection.uri", connection_string) \
+  .option("database", "healthcare") \
+  .option("collection", "streaming") \
+  .mode("append") \
+  .save()
+```
