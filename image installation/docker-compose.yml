@@ -1,34 +1,38 @@
 services:
-  spark:
-    image: bitnami/spark:latest
+  zookeeper: # required for Kafka
+    image: wurstmeister/zookeeper
     ports:
-      - "8080:8080"
-      - "7077:7077"
-    environment:
-      - SPARK_MODE=master
-    volumes:
-      - ./spark-app:/opt/spark-app
+      - "2181:2181"
 
   kafka:
-    image: bitnami/kafka:latest
+    image: wurstmeister/kafka
     ports:
       - "9092:9092"
     environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
-      - ALLOW_PLAINTEXT_LISTENER=yes
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://localhost:9092 # we will use one of them to connect with sprak
+      KAFKA_LISTENERS: EXTERNAL://0.0.0.0:9092,INTERNAL://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL      # Kafka will listen on all network interfaces
     depends_on:
       - zookeeper
 
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    ports:
-      - "2181:2181"
+  spark:
+    image: bitnami/spark
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    volumes:
+      - ./spark-app:/opt/spark-app # to make this directory accessible
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+
   cassandra:
-    image: cassandra:latest
+    image: cassandra
     ports:
       - "9042:9042"
