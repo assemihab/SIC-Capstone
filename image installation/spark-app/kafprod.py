@@ -9,6 +9,13 @@ fitdf.head()
 unique_id = fitdf['id'].unique()
 print('Number of unique id: ', len(unique_id))
 fitdf = fitdf.drop('Unnamed: 0', axis=1)
+fitdf['distance'] = fitdf.groupby('id')['distance'].transform(lambda x: x.fillna(x.mean()))
+fitdf['calories'] = fitdf.groupby('id')['calories'].transform(lambda x: x.fillna(x.mean()))
+fitdf['steps'] = fitdf.groupby('id')['steps'].transform(lambda x: x.fillna(x.mean()))
+#dron NANs
+fitdf = fitdf.dropna()
+fitdf = fitdf.reset_index(drop=True)
+
 
 
 

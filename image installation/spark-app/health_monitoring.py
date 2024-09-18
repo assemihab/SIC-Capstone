@@ -38,6 +38,7 @@ kafka_df = spark.readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
     .option("subscribe", kafka_topic)\
+    .option("failOnDataLoss","False")\
     .load()
 
 
