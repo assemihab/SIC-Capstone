@@ -1,4 +1,6 @@
 # SIC-Capstone
+![New Project](https://github.com/user-attachments/assets/4177a449-fb0c-4eec-ad8b-23f61882b6ba)
+
 ## Streaming Project Iterative Plan
 
 1. **Simulate stream code in Python** (assem)
