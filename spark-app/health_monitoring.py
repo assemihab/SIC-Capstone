@@ -45,7 +45,7 @@ sc = spark.sparkContext
 # Schema (This Schema is also the same in Cassandra on DataStax and mongoDB)
 schema = StructType([
   StructField("id", StringType(), False),
-  StructField("date", DateType(), False),
+  StructField("date", TimestampType(), False),
   StructField("hour", DoubleType(), False),
   StructField("temperature", DoubleType(), False),
   StructField("age", StringType(), True),
