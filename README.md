@@ -6,12 +6,12 @@
 1. **Simulate stream code in Python** (assem)
 2. ✅**create the .yml container and create the image** (assem)
    
-3. **Ingest data using Kafka** (Mark)+
-   - Create different Kafka topics (e.g., one for heart disease, one for sleep, etc.)
-4. **spark code for processing and store data to <del>cassandra</del> (mongodb) (a3taked keda me4 3arf)** rehab
+3. ✅**Ingest data using Kafka** (Mark)+
+   - ✅Create different Kafka topics (e.g., one for heart disease, one for sleep, etc.)
+4. ✅**spark code for processing and store data to <del>cassandra</del> (mongodb) (a3taked keda me4 3arf)** rehab
 
-4. **Process the data and connect it to a BI tool**(mark)
-   - Create a multi-facade dashboard for better visualization
+4. ✅**Process the data and connect it to a BI tool**(mark)
+   -✅ Create a multi-facade dashboard for better visualization
 
 5. ✅**Store the data in Cassandra**(yehia)
    - <del>Create different column families for each topic (if necessary)</del>
@@ -215,3 +215,19 @@ df.write.format("mongodb") \
   .mode("append") \
   .save()
 ```
+
+In our case we are getting streaming data from kafka topic so we will use writeStream instead:
+
+```python
+query = df.writeStream.format("mongodb") \
+  .option("spark.mongodb.write.connection.uri", connection_string) \
+  .option("database", "healthcare") \
+  .option("collection", "streaming") \
+  .option("checkpointLocation", "/tmp/checkpoint/old") \
+  .outputMode("append") \
+  .start()
+```
+
+_Notes_:
+1- these checkpoint file to understand from where to continue to read from Kafka so it does not skip or miss any message.
+2- OutputMode are **append** as mongoDB as there are not any aggregations.
