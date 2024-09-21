@@ -1,4 +1,4 @@
-# SIC-Capstone
+![image](https://github.com/user-attachments/assets/5b779dae-7211-4c46-9f45-6dd99d0a9b10)# SIC-Capstone
 ![New Project](https://github.com/user-attachments/assets/4177a449-fb0c-4eec-ad8b-23f61882b6ba)
 
 ## Streaming Project Iterative Plan
@@ -231,3 +231,14 @@ query = df.writeStream.format("mongodb") \
 _Notes_:
 1. these checkpoint file to understand from where to continue to read from Kafka so it does not skip or miss any message.
 2. OutputMode are **append** as mongoDB as there are not any aggregations.
+
+## Setup mongoDB atlas for connection with power bi
+1. Go to **Atlas SQL**
+   ![image](https://github.com/user-attachments/assets/1c9c37da-79dc-439f-96a3-779a871c9ed3)
+2. Select **Power bi connector**, select your right database and copy the connection string as we will use it later
+   ![image](https://github.com/user-attachments/assets/3e4f6365-e491-4262-918e-67d5141f8621)
+3. Edit the schema:
+   1. Go to **Data federation**.
+   2. Select **Manage SQL Schemas**.
+   3. Select your collection.
+   4. Click on **Generate a new schema from sample** and save it.
