@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/5b779dae-7211-4c46-9f45-6dd99d0a9b10)# SIC-Capstone
+# SIC-Capstone
 ![New Project](https://github.com/user-attachments/assets/4177a449-fb0c-4eec-ad8b-23f61882b6ba)
 
 ## Streaming Project Iterative Plan
