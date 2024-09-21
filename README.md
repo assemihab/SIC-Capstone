@@ -229,5 +229,5 @@ query = df.writeStream.format("mongodb") \
 ```
 
 _Notes_:
-1- these checkpoint file to understand from where to continue to read from Kafka so it does not skip or miss any message.
-2- OutputMode are **append** as mongoDB as there are not any aggregations.
+1. these checkpoint file to understand from where to continue to read from Kafka so it does not skip or miss any message.
+2. OutputMode are **append** as mongoDB as there are not any aggregations.
