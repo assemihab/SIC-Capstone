@@ -81,7 +81,7 @@ query = df.writeStream.format("mongodb") \
   .option("spark.mongodb.write.connection.uri", connection_string) \
   .option("database", "healthcare") \
   .option("collection", "streaming") \
-  .option("checkpointLocation", "/tmp/checkpoint") \
+  .option("checkpointLocation", "/tmp/checkpoint/old") \
   .outputMode("append") \
   .start()
 
