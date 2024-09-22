@@ -5,6 +5,7 @@ import pyspark.sql.functions as F
 from pyspark.sql.window import Window
 import random
 
+# to be able to connect to mongodb atlas
 connection_string = "mongodb+srv://yahya:wuOCBUNsQ856HP3Z@cluster0.7wbr9.mongodb.net/healthcare.test?retryWrites=true&w=majority"
 
 # Create Spark session with Cassandra connection options using the secure connect bundle
@@ -22,22 +23,6 @@ spark.sparkContext.setLogLevel("ERROR")
 # SparkContext from sparkSession to reduce written code only
 sc = spark.sparkContext
 
-# Schema
-string_schema = "id string, date string, hour string, temperature string, age string, bmi string, bpm string, calories string, distance string, gender string, steps string"
-# schema = StructType([
-#   StructField("id", StringType(), False),
-#   StructField("date", TimestampType(), False),
-#   StructField("hour", DoubleType(), False),
-#   StructField("temperature", DoubleType(), False),
-#   StructField("age", StringType(), True),
-#   StructField("bmi", StringType(), True),
-#   StructField("bpm", DoubleType(), True),
-#   StructField("calories", DoubleType(), True),
-#   StructField("distance", DoubleType(), True),
-#   StructField("gender", StringType(), True),
-#   StructField("steps", DoubleType(), True),
-# ])
-
 # Get Data from kafka topic
 df = spark \
   .readStream \
@@ -46,7 +31,7 @@ df = spark \
   .option("subscribe", "my-topic") \
   .load()
 
-################################ Processing will be here ###############################
+################################ Processing will be here #####################################
 
 # convert from json format to string
 kafka_values = df.selectExpr("CAST(value AS STRING)")
@@ -100,11 +85,17 @@ def process_batch(df, epoch_id):
         df_outlier = df.withColumn("bpm", F.when(col("bpm") > upper_limit_bpm, upper_limit_bpm)
                             .when(col("bpm") < lower_limit_bpm, lower_limit_bpm)
                             .otherwise(col("bpm")))
-        index_list = df.select("bmi").distinct().rdd.flatMap(lambda x: x).collect()
+        
+        bmi_list = df.select("bmi") \
+        .distinct().rdd \
+        .flatMap(lambda x: x) \
+        .filter(lambda x: x != '"NaN"') \
+        .collect()
+        print(bmi_list)
 
-        random_value = random.choice(index_list)  # Choose a random value from 'index' list
+        bmi_list_random_value = random.choice(bmi_list)  # Choose a random value from 'bmi' list
         df_batch = df_outlier.withColumn(
-            "bmi", when(col("bmi").isNull(), random_value).otherwise(col("bmi"))
+            "bmi", when(col("bmi") == '"NaN"', bmi_list_random_value).otherwise(col("bmi"))
         )
     else:
         df_batch = df
@@ -133,9 +124,11 @@ def process_batch(df, epoch_id):
     print(type(distance_mean))
 
     gender_mode =gender_mode if gender_mode else "MALE"
-    age_mode = age_mode if age_mode else "less30"
-    bmi_mode = bmi_mode if bmi_mode else "less30"
+    age_mode = age_mode if age_mode else "<30"
+    bmi_mode = bmi_mode if bmi_mode else "<30"
     print('age_mode: ', age_mode)
+    print('gender_mode: ', gender_mode)
+    print('bmi_mode: ', bmi_mode)
     print('type ', type(age_mode))
 
 
@@ -149,16 +142,22 @@ def process_batch(df, epoch_id):
         'gender': gender_mode,
         'age': age_mode,
         'temperature': temperature_mean
-    })
+    })\
+    .withColumn("age", when(col("age") == '"NaN"', age_mode).otherwise(col("age"))) \
+    .withColumn("gender", when(col("gender") == '"NaN"', gender_mode).otherwise(col("gender")))
+
+    ######################### write to mongoDB atlas ##################
     df_filled.write.format("mongodb").mode('append')\
     .option('database', 'healthcare').option('collection', 'streaming').save()
+
+    ####################### to console ################################
     # df_filled.write.format("console").mode("append").save()
     pass
     # return df_filled
 
 df_dropped = df_dropped.dropna(subset=["id", "date", "hour"])
 
-# Directly concatenate 'date' and the integer part of 'hour' (without creating intermediate columns)
+# Directly concatenate 'date' and the integer part of 'hour'
 df_dropped = df_dropped.withColumn(
     "time",
     to_timestamp(
@@ -184,7 +183,7 @@ df_dropped = df_dropped.withColumn(
 #   .outputMode("append") \
 #   .start()
 
-################################### write to the console ####################################################
+########################## start processing the stream ############################################
 query = df_dropped.writeStream \
   .foreachBatch(process_batch) \
   .start()
