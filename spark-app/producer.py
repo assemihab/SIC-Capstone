@@ -17,21 +17,19 @@ producer = KafkaProducer(
   value_serializer = lambda x:dumps(x).encode('utf-8')  # to make as json format
 )
 
-date_format = "%Y-%m-%d"
-
 # add streaming messeges to the kafka topic
 for row in rows[1:]: # to skip header row
   
   # to make data able to be parsed as json
   log = {
     "id": row[1],
-    "temperature": float(row[4] or 0),
-    "date": str(datetime.strptime(row[2], date_format)),
-    "hour": float(row[3]),
-    "calories": float(row[6] or 0),
-    "distance": float(row[7] or 0),
-    "bpm": float(row[9] or 0), 
-    "steps": float(row[12] or 0),
+    "temperature": row[4],
+    "date": row[2],
+    "hour": row[3],
+    "calories": row[6],
+    "distance": row[7],
+    "bpm": row[9], 
+    "steps": row[12],
     "age": row[17],
     "gender": row[18],
     "bmi": row[19],
