@@ -10,7 +10,7 @@ connection_string = "mongodb+srv://yahya:wuOCBUNsQ856HP3Z@cluster0.7wbr9.mongodb
 # Create Spark session with Cassandra connection options using the secure connect bundle
 spark = SparkSession.builder \
   .appName("Healthcare Monitoring") \
-  .master("local[*]") \
+  .master("local[2]") \
   .config("spark.mongodb.spark.enabled", "true") \
   .config("spark.mongodb.read.connection.uri", connection_string) \
   .config("spark.mongodb.write.connection.uri", connection_string) \
@@ -65,6 +65,7 @@ df_casted = df.withColumn("date", col("date").cast(DateType())) \
 
 # Drop rows with more than 6 nulls
 total_columns = len(df_casted.columns)
+print('total columns: ', total_columns)
 df_dropped = df_casted.dropna(thresh=(total_columns-6))
 
 
@@ -122,9 +123,23 @@ def process_batch(df_batch, epoch_id):
     distance_mean = df_batch.select(avg("distance")).first()[0] or 0
     steps_mean = df_batch.select(avg("steps")).first()[0] or 0
 
+    # check if null replace with 0
+    bpm_mean = bpm_mean if bpm_mean else 0
+    calories_mean = calories_mean if calories_mean else 0
+    distance_mean = distance_mean if distance_mean else 0
+    steps_mean = steps_mean if steps_mean else 0
+
+
     # Compute mode for categorical columns
     gender_mode = get_mode(df_batch, "gender")
     age_mode = get_mode(df_batch, "age")
+
+    # check if null replace with <30
+    print(distance_mean)
+    print(type(distance_mean))
+    age_mode = age_mode if age_mode else "<30"
+    gender_mode =gender_mode if gender_mode else "MALE"
+
 
     # Fill null values using the computed means and modes
     df_filled = df_batch.fillna({
@@ -135,6 +150,8 @@ def process_batch(df_batch, epoch_id):
       'gender': gender_mode,
       'age': age_mode
     })
+
+    df_filled.write.format("console").mode("append").save()
 
     return df_filled
 
@@ -172,6 +189,6 @@ query = df_dropped \
 .foreachBatch(lambda batch_df, _: replace_outliers(batch_df)) \
 .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
 .foreachBatch(process_batch) \
-.format("console").outputMode("append").start()
+.start()
 
 query.awaitTermination()

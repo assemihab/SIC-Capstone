@@ -40,5 +40,5 @@ for row in rows[1:]: # to skip header row
   
   print(log)
 
-  # producer.send("my-topic", value=log)
+  producer.send("mindf", value=log)
   time.sleep(5)

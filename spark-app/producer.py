@@ -6,14 +6,17 @@ from datetime import datetime
 
 # to get rows in csv file as list
 rows = []
-with open('/opt/spark-app/dataset.csv') as csv_file:
+with open('dataset.csv') as csv_file:
   reader = csv.reader(csv_file)
 
   rows = list(reader)
 
+BROKER_URL = 'localhost:9092'
+TOPIC_NAME = 'mindf'
+
 # Create Kafka producer to simulate sensor data
 producer = KafkaProducer(
-  bootstrap_servers = ['kafka:9092'],
+  bootstrap_servers=BROKER_URL,
   value_serializer = lambda x:dumps(x).encode('utf-8')  # to make as json format
 )
 
@@ -35,5 +38,7 @@ for row in rows[1:]: # to skip header row
     "bmi": row[19],
   }
   
-  producer.send("my-topic", value=log)
+  print(log)
+
+  # producer.send("my-topic", value=log)
   time.sleep(5)

@@ -42,8 +42,8 @@ string_schema = "id string, date string, hour string, temperature string, age st
 df = spark \
   .readStream \
   .format("kafka") \
-  .option("kafka.bootstrap.servers", "kafka:9092") \
-  .option("subscribe", "my-topic") \
+  .option("kafka.bootstrap.servers", "kafka:9093") \
+  .option("subscribe", "mindf") \
   .load()
 
 ################################ Processing will be here ###############################
@@ -154,24 +154,24 @@ df_dropped = df_dropped.withColumn(
 )
 
 ################################# Write Streaming Data to mongoDB atlas ########################################
-query = df_dropped.writeStream \
-  .foreachBatch(lambda batch_df, _: replace_outliers(batch_df))\
-  .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
-  .foreachBatch(process_batch) \
-  .format("mongodb") \
-  .option("spark.mongodb.write.connection.uri", connection_string) \
-  .option("database", "healthcare") \
-  .option("collection", "test") \
-  .option("checkpointLocation", "/tmp/checkpoint/test") \
-  .outputMode("append") \
-  .start()
+# query = df_dropped.writeStream \
+#   .foreachBatch(lambda batch_df, _: replace_outliers(batch_df))\
+#   .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
+#   .foreachBatch(process_batch) \
+#   .format("mongodb") \
+#   .option("spark.mongodb.write.connection.uri", connection_string) \
+#   .option("database", "healthcare") \
+#   .option("collection", "test") \
+#   .option("checkpointLocation", "/tmp/checkpoint/test") \
+#   .outputMode("append") \
+#   .start()
 
 ################################### write to the console ####################################################
-# query = df_dropped \
-# .writeStream \
-# .foreachBatch(lambda batch_df, _: replace_outliers(batch_df)) \
-# .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
-# .foreachBatch(process_batch) \
-# .format("console").outputMode("append").start()
+query = df_dropped \
+.writeStream \
+.foreachBatch(lambda batch_df, _: replace_outliers(batch_df)) \
+.foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
+.foreachBatch(process_batch) \
+.format("console").outputMode("append").start()
 
 query.awaitTermination()
