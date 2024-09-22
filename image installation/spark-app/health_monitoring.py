@@ -10,7 +10,7 @@ connection_string = "mongodb+srv://assem:1231234@cluster0.1kkof.mongodb.net/?ret
 # Create Spark session with Cassandra connection options using the secure connect bundle
 spark = SparkSession.builder \
   .appName("Healthcare Monitoring") \
-  .master("local[2]") \
+  .master("local[*]") \
   .config("spark.mongodb.spark.enabled", "true") \
   .config("spark.mongodb.read.connection.uri", connection_string) \
   .config("spark.mongodb.write.connection.uri", connection_string) \
@@ -47,14 +47,12 @@ df = spark \
   .load()
 
 ################################ Processing will be here ###############################
-kafka_values = df.selectExpr("CAST(value AS STRING)")
-# {'id': '621e2e8e67b776a24055b564', 'temperature': '-1.466659067979661', 'date': '2021-05-24', 'hour': '0.0', 'calories': '89.04', 'distance': '98.3', 'bpm': '66.87476280834915', 'steps': '134.0', 'age': '<30', 'gender': 'MALE', 'bmi': '<19'}
-# all string
-parsed_df = kafka_values.selectExpr("explode(from_json(value, 'array<struct<id:string,temperature:string,date:string,hour:string,calories:string,distance:string,bpm:string,\
-steps:string,age:string,gender:string,bmi:string>>')) AS data")
-df = parsed_df.select(col("data.*"))
-#  convert from json format to string
 
+# convert from json format to string
+df = df. \
+  selectExpr("CAST(value AS STRING)"). \
+  select(from_json("value", string_schema).alias("tmp")). \
+  select("tmp.*")
 
 # cast all columns from string to specified types
 df_casted = df.withColumn("date", col("date").cast(DateType())) \
@@ -64,13 +62,9 @@ df_casted = df.withColumn("date", col("date").cast(DateType())) \
               .withColumn("calories", col("calories").cast(DoubleType())) \
               .withColumn("distance", col("distance").cast(DoubleType())) \
               .withColumn("steps", col("steps").cast(IntegerType()))
-# df_casted = df_casted.replace('', None)
-df_casted = df_casted.withColumn("gender", F.when(F.col("gender") == "", None).otherwise(F.col("gender")))
-df_casted = df_casted.withColumn("age", F.when(F.col("age") == "", None).otherwise(F.col("age")))
-df_casted = df_casted.withColumn("bmi", F.when(F.col("bmi") == "", None).otherwise(F.col("bmi")))
+
 # Drop rows with more than 6 nulls
 total_columns = len(df_casted.columns)
-print('total columns: ', total_columns)
 df_dropped = df_casted.dropna(thresh=(total_columns-6))
 
 
@@ -121,58 +115,16 @@ def get_mode(df, column):
     return mode_df.collect()[0][0] if mode_df.count() > 0 else None
 
 # Function to process each micro-batch and fill nulls
-def process_batch(df, epoch_id):
+def process_batch(df_batch, epoch_id):
     # Compute mean for numerical columns
-    for name in ["calories", "distance", "steps"]:
-        percentile25 = df.approxQuantile(name, [0.25], 0.01)[0]
-        percentile75 = df.approxQuantile(name, [0.75], 0.01)[0]
-        iqr = percentile75 - percentile25
-        upper_limit = percentile75 + 3 * iqr
-        lower_limit = percentile25 - 3 * iqr
-        
-        df = df.withColumn(name, F.when(col(name) > upper_limit, upper_limit)
-                                  .when(col(name) < lower_limit, lower_limit)
-                                  .otherwise(col(name)))
-    
-    bpm_mean = df.agg(mean("bpm")).first()[0]
-    bpm_stddev = df.agg(stddev("bpm")).first()[0]
-    upper_limit_bpm = bpm_mean + 3 * bpm_stddev
-    lower_limit_bpm = bpm_mean - 3 * bpm_stddev
-    
-    df_outlier = df.withColumn("bpm", F.when(col("bpm") > upper_limit_bpm, upper_limit_bpm)
-                          .when(col("bpm") < lower_limit_bpm, lower_limit_bpm)
-                          .otherwise(col("bpm")))
-    
-
     bpm_mean = df_batch.select(avg("bpm")).first()[0] or 0
     calories_mean = df_batch.select(avg("calories")).first()[0] or 0
     distance_mean = df_batch.select(avg("distance")).first()[0] or 0
     steps_mean = df_batch.select(avg("steps")).first()[0] or 0
-    temperature_mean = df_batch.select(avg("temperature")).first()[0] or 0
-
-    # check if null replace with 0
-    bpm_mean = bpm_mean if bpm_mean else 0
-    calories_mean = calories_mean if calories_mean else 0
-    distance_mean = distance_mean if distance_mean else 0
-    steps_mean = steps_mean if steps_mean else 0
-    temperature_mean = temperature_mean if temperature_mean else 0
-
 
     # Compute mode for categorical columns
     gender_mode = get_mode(df_batch, "gender")
     age_mode = get_mode(df_batch, "age")
-    bmi_mode = get_mode(df_batch, "bmi")
-
-    # check if null replace with <30
-    print(distance_mean)
-    print(type(distance_mean))
-    
-    gender_mode =gender_mode if gender_mode else "MALE"
-    age_mode = age_mode if age_mode else "less30"
-    bmi_mode = bmi_mode if bmi_mode else "less30"
-    print('age_mode: ', age_mode)
-    print('type ', type(age_mode))
-
 
     # Fill null values using the computed means and modes
     df_filled = df_batch.fillna({
@@ -181,12 +133,8 @@ def process_batch(df, epoch_id):
       'distance': distance_mean,
       'steps': steps_mean,
       'gender': gender_mode,
-      'age': age_mode,
-    #   'bmi': bmi_mode,
-    #   'temperature': temperature_mean
+      'age': age_mode
     })
-
-    df_filled.write.format("console").mode("append").save()
 
     return df_filled
 
@@ -206,22 +154,24 @@ df_dropped = df_dropped.withColumn(
 )
 
 ################################# Write Streaming Data to mongoDB atlas ########################################
-# query = df_dropped.writeStream \
-#   .foreachBatch(lambda batch_df, _: replace_outliers(batch_df))\
-#   .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
-#   .foreachBatch(process_batch) \
-#   .format("mongodb") \
-#   .option("spark.mongodb.write.connection.uri", connection_string) \
-#   .option("database", "healthcare") \
-#   .option("collection", "test") \
-#   .option("checkpointLocation", "/tmp/checkpoint/test") \
-#   .outputMode("append") \
-#   .start()
+query = df_dropped.writeStream \
+  .foreachBatch(lambda batch_df, _: replace_outliers(batch_df))\
+  .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
+  .foreachBatch(process_batch) \
+  .format("mongodb") \
+  .option("spark.mongodb.write.connection.uri", connection_string) \
+  .option("database", "healthcare") \
+  .option("collection", "test") \
+  .option("checkpointLocation", "/tmp/checkpoint/test") \
+  .outputMode("append") \
+  .start()
+query.awaitTermination()
 
 ################################### write to the console ####################################################
-query = df_dropped \
-.writeStream \
-.foreachBatch(process_batch) \
-.start()
+# query = df_dropped \
+# .writeStream \
+# .foreachBatch(lambda batch_df, _: replace_outliers(batch_df)) \
+# .foreachBatch(lambda batch_df, _: fill_nulls_with_random(batch_df)) \
+# .foreachBatch(process_batch) \
+# .format("console").outputMode("append").start()
 
-query.awaitTermination()
